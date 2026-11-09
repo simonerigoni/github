@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Shared Renovate preset for simonerigoni repos. Use with: \"extends\": [\"github>simonerigoni/github:renovate-config\"]. Python version pins are NOT set here; repos that need one keep it in their own renovate.json.",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "Europe/Amsterdam",
+  "schedule": [
+    "before 9am on monday"
+  ],
+  "prHourlyLimit": 0,
+  "rebaseWhen": "behind-base-branch",
+  "pre-commit": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": [
+      "before 9am on monday"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "Group all minor and patch updates into one PR",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "all non-major dependencies",
+      "groupSlug": "all-minor-patch",
+      "automerge": true
+    },
+    {
+      "description": "Group GitHub Actions updates (including digest pins) into one PR",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github actions",
+      "groupSlug": "github-actions"
+    },
+    {
+      "description": "Group pre-commit hook updates into one PR",
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "groupName": "pre-commit hooks",
+      "groupSlug": "pre-commit"
+    }
+  ]
+}
