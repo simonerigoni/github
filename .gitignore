@@ -1,0 +1,7 @@
+# Files, directories or patterns that should be excluded from Git tracking
+
+# Temp stuff
+temp/
+
+# Node (npx renovate-config-validator)
+node_modules/

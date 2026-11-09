@@ -1,4 +1,6 @@
-# github
+# GitHub
+
+## Introduction
 
 Shared GitHub Actions workflows and Renovate config for the `simonerigoni` Python repos.
 
@@ -98,3 +100,15 @@ own `renovate.json` `packageRules`.
 
 Callers use the `v1` tag. After changing the workflow, move the tag (or cut `v2` for breaking
 changes).
+
+## List of activities
+
+In the [TODO.md](TODO.md) file you can find the list of tasks and on going activities.
+
+## Licensing and acknowledgements
+
+Have a look at [LICENSE.md](LICENSE.md).
+
+## Outro
+
+I hope this repository was interesting and thank you for taking the time to check it out. Let me know if you have any question and if you like the content that I create feel free to [buy me a coffee](https://www.buymeacoffee.com/simonerigoni).
