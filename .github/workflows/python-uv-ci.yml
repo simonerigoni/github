@@ -1,0 +1,87 @@
+# Reusable CI for Python projects managed with uv.
+# The Python version comes from each calling repo's .python-version (nothing is hard-coded here).
+name: Python uv CI
+
+on:
+  workflow_call:
+    inputs:
+      pyright:
+        description: Run pyright type checking
+        type: boolean
+        default: true
+      pytest:
+        description: Run pytest
+        type: boolean
+        default: true
+      pytest-args:
+        description: Extra arguments passed to pytest
+        type: string
+        default: "-v --durations=0"
+    secrets:
+      QUANDL_API_KEY:
+        description: Optional API key exposed to the test step (data_dashboard_project)
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      ENV: github
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Show Python version
+        run: |
+          echo "Python requested by .python-version: $(cat .python-version 2>/dev/null || echo '<none>')"
+
+      - name: Check lock file is up to date
+        id: lock
+        run: uv lock --locked
+
+      - name: Install dependencies
+        id: sync
+        run: uv sync --locked --all-groups
+
+      - name: Ruff lint
+        if: ${{ !cancelled() && steps.sync.outcome == 'success' }}
+        run: uv run ruff check --output-format=github .
+
+      - name: Ruff format
+        if: ${{ !cancelled() && steps.sync.outcome == 'success' }}
+        run: uv run ruff format --check --diff .
+
+      - name: Pyright
+        if: ${{ !cancelled() && steps.sync.outcome == 'success' && inputs.pyright }}
+        run: uv run pyright .
+
+      - name: Pytest
+        if: ${{ !cancelled() && steps.sync.outcome == 'success' && inputs.pytest }}
+        env:
+          QUANDL_API_KEY: ${{ secrets.QUANDL_API_KEY }}
+          PYTEST_ARGS: ${{ inputs.pytest-args }}
+        # PYTEST_ARGS is intentionally unquoted so it splits into separate arguments.
+        run: uv run pytest $PYTEST_ARGS --cov --cov-report=term --cov-report=markdown:COVERAGE.md
+
+      - name: Coverage summary
+        if: ${{ !cancelled() && inputs.pytest && hashFiles('COVERAGE.md') != '' }}
+        run: |
+          {
+            echo "## Coverage"
+            echo
+            cat COVERAGE.md
+          } >> "$GITHUB_STEP_SUMMARY"
