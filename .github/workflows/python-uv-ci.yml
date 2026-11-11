@@ -17,6 +17,16 @@ on:
         description: Extra arguments passed to pytest
         type: string
         default: "-v --durations=0"
+      pip-audit:
+        description: Audit locked dependencies with pip-audit
+        type: boolean
+        default: true
+      pip-audit-ignore:
+        description: >
+          Space- or comma-separated vulnerability IDs for pip-audit to ignore
+          (for example GHSA-xxxx or CVE-2024-xxxx).
+        type: string
+        default: ""
     secrets:
       QUANDL_API_KEY:
         description: Optional API key exposed to the test step (data_dashboard_project)
@@ -30,6 +40,14 @@ jobs:
     name: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # Job-level concurrency is required inside a reusable workflow.
+    # github.workflow / github.ref come from the caller. github.job keeps this
+    # job from blocking a sibling job in the same run. Cancel only PR runs so
+    # a new synchronize cancels the outdated one; default-branch (push) runs
+    # are never cancelled from here.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     permissions:
       contents: read
     env:
@@ -85,3 +103,85 @@ jobs:
             echo
             cat COVERAGE.md
           } >> "$GITHUB_STEP_SUMMARY"
+
+  pip-audit:
+    name: pip-audit
+    if: ${{ inputs.pip-audit }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Check lock file is up to date
+        run: uv lock --locked
+
+      - name: Export locked requirements
+        # --no-emit-project: audit locked third-party deps even when the
+        # local project is not installable (no need for uv sync).
+        # --all-groups: include dev tools that CI installs.
+        # Hashes are kept so pip-audit can run with --disable-pip.
+        run: |
+          uv export \
+            --frozen \
+            --format requirements-txt \
+            --all-groups \
+            --no-emit-project \
+            --no-annotate \
+            --output-file "${RUNNER_TEMP}/requirements.txt"
+
+      - name: Run pip-audit
+        env:
+          PIP_AUDIT_IGNORE: ${{ inputs.pip-audit-ignore }}
+        run: |
+          set -euo pipefail
+          ignore_args=()
+          normalized=${PIP_AUDIT_IGNORE//,/ }
+          # Word-splitting is intentional: IDs are whitespace/comma-separated.
+          for id in $normalized; do
+            if [[ "$id" =~ ^[A-Za-z0-9._:-]+$ ]]; then
+              ignore_args+=(--ignore-vuln "$id")
+            else
+              echo "Invalid pip-audit-ignore ID: $id" >&2
+              exit 1
+            fi
+          done
+
+          set +e
+          uvx --from pip-audit==2.10.1 pip-audit \
+            --requirement "${RUNNER_TEMP}/requirements.txt" \
+            --disable-pip \
+            --strict \
+            --progress-spinner off \
+            --format markdown \
+            --desc on \
+            --output "${RUNNER_TEMP}/pip-audit.md" \
+            "${ignore_args[@]}"
+          status=$?
+          set -e
+
+          {
+            echo "## pip-audit"
+            echo
+            if [[ -s "${RUNNER_TEMP}/pip-audit.md" ]]; then
+              cat "${RUNNER_TEMP}/pip-audit.md"
+            elif [[ "$status" -eq 0 ]]; then
+              echo "No known vulnerabilities found."
+            else
+              echo "pip-audit failed without a markdown report (exit ${status})."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$status"
