@@ -41,12 +41,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     # Job-level concurrency is required inside a reusable workflow.
-    # github.workflow / github.ref come from the caller. github.job keeps this
-    # job from blocking a sibling job in the same run. Cancel only PR runs so
-    # a new synchronize cancels the outdated one; default-branch (push) runs
-    # are never cancelled from here.
+    # github.workflow / github.ref come from the caller. Do not use
+    # github.job in the group: in a reusable workflow it is the *caller's*
+    # job id (often `ci`), so checks and pip-audit would share a group and
+    # cancel each other. Use a unique suffix per callee job instead.
+    # Cancel only PR runs so a new synchronize cancels the outdated one;
+    # default-branch (push) runs are never cancelled from here.
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
+      group: ${{ github.workflow }}-${{ github.ref }}-checks
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     permissions:
       contents: read
@@ -92,8 +94,10 @@ jobs:
         env:
           QUANDL_API_KEY: ${{ secrets.QUANDL_API_KEY }}
           PYTEST_ARGS: ${{ inputs.pytest-args }}
-        # PYTEST_ARGS is intentionally unquoted so it splits into separate arguments.
-        run: uv run pytest $PYTEST_ARGS --cov --cov-report=term --cov-report=markdown:COVERAGE.md
+        run: |
+          # Split caller-provided pytest args on whitespace (default: -v --durations=0).
+          read -r -a extra <<< "${PYTEST_ARGS}"
+          uv run pytest "${extra[@]}" --cov --cov-report=term --cov-report=markdown:COVERAGE.md
 
       - name: Coverage summary
         if: ${{ !cancelled() && inputs.pytest && hashFiles('COVERAGE.md') != '' }}
@@ -110,7 +114,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
+      group: ${{ github.workflow }}-${{ github.ref }}-pip-audit
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     permissions:
       contents: read
