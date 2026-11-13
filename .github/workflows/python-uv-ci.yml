@@ -136,7 +136,11 @@ jobs:
         # --no-emit-project: audit locked third-party deps even when the
         # local project is not installable (no need for uv sync).
         # --all-groups: include dev tools that CI installs.
-        # Hashes are kept so pip-audit can run with --disable-pip.
+        # --no-hashes: packages from custom indexes (for example
+        # torch==...+cu130) have no hashes. pip-audit implies
+        # --require-hashes when any line has a hash, so a mixed
+        # export would fail. Audit the already-pinned list with
+        # --disable-pip --no-deps instead of requiring hashes.
         run: |
           uv export \
             --frozen \
@@ -144,6 +148,7 @@ jobs:
             --all-groups \
             --no-emit-project \
             --no-annotate \
+            --no-hashes \
             --output-file "${RUNNER_TEMP}/requirements.txt"
 
       - name: Run pip-audit
@@ -164,10 +169,17 @@ jobs:
           done
 
           set +e
+          # --disable-pip --no-deps: audit the frozen, pinned list
+          # without resolving dependencies or requiring hashes.
+          # Do not pass --strict: packages missing from PyPI (local
+          # versions such as torch==2.13.0+cu130) are skipped instead
+          # of failing the job. Known vulnerabilities still exit
+          # non-zero. Skipped packages are included in the markdown
+          # report and copied to the step summary below.
           uvx --from pip-audit==2.10.1 pip-audit \
             --requirement "${RUNNER_TEMP}/requirements.txt" \
             --disable-pip \
-            --strict \
+            --no-deps \
             --progress-spinner off \
             --format markdown \
             --desc on \
@@ -180,6 +192,10 @@ jobs:
             echo "## pip-audit"
             echo
             if [[ -s "${RUNNER_TEMP}/pip-audit.md" ]]; then
+              if grep -F -q -- "Skip Reason" "${RUNNER_TEMP}/pip-audit.md"; then
+                echo "The following packages could not be audited and were skipped. Skips do not fail the job; known vulnerabilities still do."
+                echo
+              fi
               cat "${RUNNER_TEMP}/pip-audit.md"
             elif [[ "$status" -eq 0 ]]; then
               echo "No known vulnerabilities found."
