@@ -38,7 +38,7 @@ permissions:
 jobs:
   checks:
     name: checks
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     # Job-level concurrency is required inside a reusable workflow.
     # github.workflow / github.ref come from the caller. Do not use
@@ -111,7 +111,7 @@ jobs:
   pip-audit:
     name: pip-audit
     if: ${{ inputs.pip-audit }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-pip-audit

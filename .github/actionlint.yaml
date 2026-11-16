@@ -1,0 +1,9 @@
+# Temporary: actionlint 1.7.12 (the latest rhysd/actionlint release, March 2026)
+# does not know the GitHub-hosted ubuntu-26.04 / ubuntu-26.04-arm labels, which
+# have been generally available since 2026-09-17. Remove this file once
+# actionlint is bumped to a release that includes those labels.
+# https://github.com/rhysd/actionlint/issues/682
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
+    - ubuntu-26.04-arm
