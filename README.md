@@ -1,5 +1,7 @@
 # GitHub
 
+[![Workflow lint](https://github.com/simonerigoni/github/actions/workflows/workflow-lint.yml/badge.svg?branch=main)](https://github.com/simonerigoni/github/actions/workflows/workflow-lint.yml?query=branch%3Amain) [![Release](https://img.shields.io/github/v/release/simonerigoni/github)](https://github.com/simonerigoni/github/releases) [![License](https://img.shields.io/github/license/simonerigoni/github)](LICENSE.md) [![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot)](https://renovatebot.com)
+
 ## Introduction
 
 Shared GitHub Actions workflows and Renovate config for the `simonerigoni` Python repos.
