@@ -8,8 +8,7 @@ Overview of the status of the tasks of this project.
 
 ### To do
 
-- [ ] Roll out the shared CI workflow and Renovate preset to all Python repos
-- [ ] Add CI to github_pixel_artworks
+- [ ] None
 
 ### In Progress
 
@@ -20,3 +19,5 @@ Overview of the status of the tasks of this project.
 - [x] Project initialization
 - [x] Shared reusable workflow `python-uv-ci.yml` and Renovate preset `renovate-config.json` (`v1`)
 - [x] Pilot on convert_images_to_pdf
+- [x] Roll out the shared CI workflow and Renovate preset to all Python repos
+- [x] Add CI to github_pixel_artworks
