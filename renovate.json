@@ -2,5 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>simonerigoni/github:renovate-config"
+  ],
+  "packageRules": [
+    {
+      "description": "Do not bump the zizmor CLI version input on its own. zizmor-action only ships lockfiles for versions known at its release, so a newer CLI pin (for example 1.33.1 on action v0.9.0) fails the lint job with 'Unknown version'. Bump this input when a new action release adds the lockfile.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/zizmorcore/zizmor"
+      ],
+      "enabled": false
+    }
   ]
 }
