@@ -49,7 +49,7 @@ jobs:
         with:
           inputs: .github/workflows
           collect: workflows
-          version: "1.33.1"
+          version: "1.33.0"
           advanced-security: "false"
           annotations: "true"
           online-audits: "true"
