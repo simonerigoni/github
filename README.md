@@ -139,7 +139,7 @@ and `ubuntu-26.04-arm` labels, because actionlint 1.7.12 does not know them yet
 
 ## List of activities
 
-In the [TODO.md](TODO.md) file you can find the list of tasks and on going activities.
+In the [TODO.md](TODO.md) file you can find the list of tasks and ongoing activities.
 
 ## Licensing and acknowledgements
 
